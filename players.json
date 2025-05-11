@@ -1,0 +1,32 @@
+[
+    {
+        "name": "Player 1",
+        "buyIn": 20.00,
+        "chipValue": 22.75
+    },
+    {
+        "name": "Player 2",
+        "buyIn": 20.00,
+        "chipValue": 11.25
+    },
+    {
+        "name": "Player 3",
+        "buyIn": 20.00,
+        "chipValue": 43.75
+    },
+    {
+        "name": "Player 4",
+        "buyIn": 20.00,
+        "chipValue": 21.25
+    },
+    {
+        "name": "Player 5",
+        "buyIn": 20.00,
+        "chipValue": 3.75
+    },
+    {
+        "name": "Player 6",
+        "buyIn": 20.00,
+        "chipValue": 17.25
+    }
+]
