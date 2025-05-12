@@ -42,6 +42,7 @@
             playerNumber = new NumericUpDown();
             playerNumber_label = new Label();
             app_panel = new Panel();
+            payment_text_template = new Label();
             PlayerGroupTemplate.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)playerNumber).BeginInit();
             app_panel.SuspendLayout();
@@ -57,6 +58,7 @@
             Calculate_Button.Text = "Calculate Payments";
             Calculate_Button.UseVisualStyleBackColor = true;
             Calculate_Button.Visible = false;
+            Calculate_Button.Click += Calculate_Button_Click;
             // 
             // PlayerGroupTemplate
             // 
@@ -145,7 +147,7 @@
             // submit_playerNumber
             // 
             submit_playerNumber.Font = new Font("Segoe UI", 16F);
-            submit_playerNumber.Location = new Point(599, 28);
+            submit_playerNumber.Location = new Point(589, 31);
             submit_playerNumber.Name = "submit_playerNumber";
             submit_playerNumber.Size = new Size(89, 52);
             submit_playerNumber.TabIndex = 14;
@@ -156,7 +158,7 @@
             // playerNumber
             // 
             playerNumber.Font = new Font("Segoe UI", 24F);
-            playerNumber.Location = new Point(504, 28);
+            playerNumber.Location = new Point(494, 31);
             playerNumber.Name = "playerNumber";
             playerNumber.Size = new Size(89, 50);
             playerNumber.TabIndex = 13;
@@ -165,7 +167,7 @@
             // 
             playerNumber_label.AutoSize = true;
             playerNumber_label.Font = new Font("Segoe UI", 24F);
-            playerNumber_label.Location = new Point(131, 28);
+            playerNumber_label.Location = new Point(121, 31);
             playerNumber_label.Name = "playerNumber_label";
             playerNumber_label.Size = new Size(367, 45);
             playerNumber_label.TabIndex = 12;
@@ -174,6 +176,7 @@
             // app_panel
             // 
             app_panel.AutoScroll = true;
+            app_panel.Controls.Add(payment_text_template);
             app_panel.Controls.Add(Calculate_Button);
             app_panel.Controls.Add(PlayerGroupTemplate);
             app_panel.Controls.Add(submit_playerNumber);
@@ -184,11 +187,22 @@
             app_panel.Size = new Size(800, 482);
             app_panel.TabIndex = 17;
             // 
+            // payment_text_template
+            // 
+            payment_text_template.AutoSize = true;
+            payment_text_template.Font = new Font("Segoe UI", 16F);
+            payment_text_template.Location = new Point(271, 452);
+            payment_text_template.Name = "payment_text_template";
+            payment_text_template.Size = new Size(189, 30);
+            payment_text_template.TabIndex = 18;
+            payment_text_template.Text = "player pays player";
+            payment_text_template.Visible = false;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 479);
+            ClientSize = new Size(804, 479);
             Controls.Add(app_panel);
             Name = "Form1";
             Text = "Poker Square";
@@ -216,5 +230,6 @@
         private NumericUpDown playerNumber;
         private Label playerNumber_label;
         private Panel app_panel;
+        private Label payment_text_template;
     }
 }
