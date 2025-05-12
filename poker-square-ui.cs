@@ -21,6 +21,7 @@ namespace Poker_Square
             int gutter = 45; //Space between each box
             int startX = PlayerGroupTemplate.Location.X; // X position of the template
             int currentY = PlayerGroupTemplate.Location.Y; //Y position of the template
+            int scrollableHeight = 0;
             for (int i = 0; i < numBoxes; i++)
             {
                 if (i + 1 > row * 3)
@@ -28,11 +29,12 @@ namespace Poker_Square
                     row++;
                     startX = PlayerGroupTemplate.Location.X;
                     currentY = (PlayerGroupTemplate.Location.Y + ((PlayerGroupTemplate.Size.Height + 20) * (row - 1)));
+                    scrollableHeight += PlayerGroupTemplate.Size.Height + 20;
                     if (row == numRows)
                     {
                         gutter = (600 - (170 * leftOver)) / (leftOver + 1);
                         startX += gutter;
-                        app_panel.AutoScrollMinSize = new Size(0, app_panel.Height + 200); //Adds space to the bottom of the scrollable area
+                        app_panel.AutoScrollMinSize = new Size(0, scrollableHeight + 450); //Adds space to the bottom of the scrollable area
                     }
                 }
                 GroupBox newGroup = CloneGroupBox(PlayerGroupTemplate, i + 1);
