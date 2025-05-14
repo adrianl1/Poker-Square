@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Poker_Square
 {
     internal static class Program
@@ -10,7 +8,7 @@ namespace Poker_Square
 // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Application.Run(new Form1());
+            Application.Run(new PokerSquareForm());
         }
     }
 }

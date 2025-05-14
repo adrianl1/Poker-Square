@@ -1,19 +1,13 @@
-//using static System.Windows.Forms.AxHost;
-
-using System.ComponentModel;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
-
 namespace Poker_Square
 {
-    public partial class Form1 : Form
+    public partial class PokerSquareForm : Form
     {
         List<Player> players = new List<Player>();
         List<GroupBox> playerBoxes = new List<GroupBox>();
         List<Payment> payments = new List<Payment>();
         int[] gridPlan; //Array containing the number of boxes in each row
 
-        public Form1()
+        public PokerSquareForm()
         {
             InitializeComponent();
             playerNumber_ValueChanged(null, null);
@@ -29,32 +23,6 @@ namespace Poker_Square
             if (lastRow > 0) gridPlan.Add(lastRow);
 
             return gridPlan.ToArray();
-
-            //int[] gridPlan;
-            //int leftOver = numBoxes % 3;
-            //int lastRow;
-            //if (leftOver == 0)
-            //{
-            //    gridPlan = new int[numBoxes / 3];
-            //    lastRow = 3;
-            //}
-            //else
-            //{
-            //    gridPlan = new int[(numBoxes / 3) + 1];
-            //    lastRow = leftOver;
-            //}
-            //for (int i = 0; i < gridPlan.Length; i++)
-            //{
-            //    if (i == gridPlan.Length - 1)
-            //    {
-            //        gridPlan[i] = lastRow;
-            //    }
-            //    else
-            //    {
-            //        gridPlan[i] = 3;
-            //    }
-            //}
-            //return gridPlan;
         }
 
         private void playerNumber_ValueChanged(object sender, EventArgs e)
@@ -68,6 +36,7 @@ namespace Poker_Square
             int gutter = 73; //Space between each box
             int currentY = PlayerGroupTemplate.Location.Y; //Y position of the template
             int currentPlayer = 1;
+
             //Remove boxes if the number decreased
             if (playerNumber.Value < playerBoxes.Count())
             {
@@ -77,6 +46,7 @@ namespace Poker_Square
                     playerBoxes.Remove(playerBoxes[i]);
                 }
             }
+
             //Add boxes if the number increased
             else
             {
@@ -89,6 +59,7 @@ namespace Poker_Square
                     playerBoxes.Add(newGroup);
                 }
             }
+
             //Set box locations
             currentPlayer = 1;
             for (int i = 0; i < gridPlan.Length; i++)
@@ -124,14 +95,14 @@ namespace Poker_Square
 
         private void Calculate_Button_Click(object sender, EventArgs e)
         {
+            players.Clear();
+            payments.Clear();
+            ClearPaymentText();
             if (!VerifyPopulatedTextBoxes())
             {
                 CreateErrorMessage("Make sure all text boxes have some value.");
                 return;
             }
-            players.Clear();
-            payments.Clear();
-            ClearPaymentText();
             ClearErrorMessage();
             PopulatePlayersList();
             int currentY = calculate_button.Location.Y + calculate_button.Height + 20;
@@ -208,13 +179,16 @@ namespace Poker_Square
 
         private void CreateErrorMessage(string message)
         {
-            Label errorLabel = new Label();
-            errorLabel.Name = "error_text";
-            errorLabel.Font = new Font("Segoe UI", 24F);
-            errorLabel.ForeColor = Color.FromArgb(255, 0, 0);
-            errorLabel.AutoSize = true;
-            errorLabel.Text = message;
-            errorLabel.Visible = true;
+            Label errorLabel = new Label()
+            {
+                Name = "error_text",
+                Font = new Font("Segoe UI", 24F),
+                ForeColor = Color.FromArgb(255, 0, 0),
+                AutoSize = true,
+                Text = message,
+                Visible = true
+            };
+            
             app_panel.Controls.Add(errorLabel);
             errorLabel.Location = new System.Drawing.Point(CalculateCenterX(errorLabel), calculate_button.Location.Y + calculate_button.Height + 20);
             app_panel.Controls.Add(CreateSpacer(20, errorLabel, "error_spacer"));
@@ -271,27 +245,17 @@ namespace Poker_Square
 
         private void ClearPaymentText()
         {
-            List<Control> paymentLabels = new List<Control>();
-            foreach (Control control in app_panel.Controls)
-            {
-                if (control.Name.Contains("PaymentText_"))
-                {
-                    paymentLabels.Add(control);
-                }
-            }
-            foreach (Control control in paymentLabels)
+            foreach (var control in app_panel.Controls.OfType<Label>()
+                                      .Where(c => c.Name.StartsWith("PaymentText_") || c.Name == "all_square")
+                                      .ToList())
             {
                 app_panel.Controls.Remove(control);
             }
-            app_panel.Controls.RemoveByKey("all_square");
         }
 
         private void ClearErrorMessage()
         {
-            if (app_panel.Controls.ContainsKey("error_text"))
-            {
-                app_panel.Controls.RemoveByKey("error_text");
-            }
+            app_panel.Controls.RemoveByKey("error_text");
         }
 
         private void ClearAllSpacers()
@@ -371,54 +335,15 @@ namespace Poker_Square
                 debtor.balance += paymentAmount;
                 creditor.balance -= paymentAmount;
 
-                if (debtor.balance == 0)
+                if (debtor.balance < 0.01m)
                 {
                     negatives.RemoveAt(0);
                 }
-                if (creditor.balance == 0)
+                if (creditor.balance < 0.01m)
                 {
                     positives.RemoveAt(0);
                 }
             }
-
-            //This loop starts at the first negative player in the list
-            //while (negatives.Count != 0)
-            //{
-            //    //Check for any players that owe the exact amount that someone else made
-            //    for (int i = 0; i < negatives.Count; i++)
-            //    {
-            //        for (int j = 0; j < positives.Count; j++)
-            //        {
-            //            if (Math.Abs(negatives[i].balance) == positives[j].balance)
-            //            {
-            //                payments.Add(new Payment(negatives[i].name, positives[j].name, positives[j].balance));
-            //                negatives.RemoveAt(i);
-            //                positives.RemoveAt(j);
-            //                j--;
-            //            }
-            //        }
-            //    }
-
-            //    if (negatives.Count == 0)
-            //    {
-            //        break;
-            //    }
-
-            //    //Square up the next negative player
-            //    if (positives[0].balance > Math.Abs(negatives[0].balance))
-            //    {
-            //        payments.Add(new Payment(negatives[0].name, positives[0].name, Math.Abs(negatives[0].balance)));
-            //        positives[0].balance -= Math.Abs(negatives[0].balance);
-            //        negatives.RemoveAt(0);
-            //    }
-            //    else
-            //    {
-            //        payments.Add(new Payment(negatives[0].name, positives[0].name, positives[0].balance));
-            //        negatives[0].balance += positives[0].balance;
-            //        positives.RemoveAt(0);
-            //    }
-            //}
-
         }
 
         private void VerifyChipCount()
@@ -439,23 +364,20 @@ namespace Poker_Square
 
         private bool VerifyPopulatedTextBoxes()
         {
-            bool conclusion = true;
+            bool allValid = true;
             foreach (GroupBox playerBox in playerBoxes)
             {
-                foreach (Control c in playerBox.Controls)
+                foreach (TextBox textBox in playerBox.Controls.OfType<TextBox>())
                 {
-                    if (c is TextBox)
+                    textBox.BackColor = Color.White;
+                    if (string.IsNullOrEmpty(textBox.Text))
                     {
-                        c.BackColor = Color.White;
-                        if (c.Text.Equals(""))
-                        {
-                            c.BackColor = Color.FromArgb(255, 184, 184);
-                            conclusion = false;
+                        textBox.BackColor = Color.FromArgb(255, 184, 184);
+                        allValid = false;
                         }
-                    }
                 }
             }
-            return conclusion;
+            return allValid;
         }
 
         private void textbox_TextChanged(object sender, EventArgs e)

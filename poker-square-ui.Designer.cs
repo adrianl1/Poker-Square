@@ -1,6 +1,6 @@
 ﻿namespace Poker_Square
 {
-    partial class Form1
+    partial class PokerSquareForm
     {
         /// <summary>
         ///  Required designer variable.
