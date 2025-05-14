@@ -42,6 +42,7 @@
             calculate_button = new Button();
             payment_text_template = new Label();
             app_panel = new Panel();
+            test_data = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)playerNumber).BeginInit();
             PlayerGroupTemplate.SuspendLayout();
             app_panel.SuspendLayout();
@@ -65,7 +66,7 @@
             playerNumber.Minimum = new decimal(new int[] { 2, 0, 0, 0 });
             playerNumber.Name = "playerNumber";
             playerNumber.Size = new Size(89, 50);
-            playerNumber.TabIndex = 13;
+            playerNumber.TabIndex = 0;
             playerNumber.Value = new decimal(new int[] { 2, 0, 0, 0 });
             playerNumber.ValueChanged += playerNumber_ValueChanged;
             // 
@@ -82,7 +83,7 @@
             PlayerGroupTemplate.Location = new Point(100, 133);
             PlayerGroupTemplate.Name = "PlayerGroupTemplate";
             PlayerGroupTemplate.Size = new Size(170, 200);
-            PlayerGroupTemplate.TabIndex = 15;
+            PlayerGroupTemplate.TabIndex = 1;
             PlayerGroupTemplate.TabStop = false;
             PlayerGroupTemplate.Text = "Player";
             PlayerGroupTemplate.Visible = false;
@@ -137,21 +138,21 @@
             player_name.Location = new Point(31, 45);
             player_name.Name = "player_name";
             player_name.Size = new Size(64, 23);
-            player_name.TabIndex = 2;
+            player_name.TabIndex = 1;
             // 
             // player_final
             // 
             player_final.Location = new Point(31, 161);
             player_final.Name = "player_final";
             player_final.Size = new Size(64, 23);
-            player_final.TabIndex = 0;
+            player_final.TabIndex = 3;
             // 
             // player_bought
             // 
             player_bought.Location = new Point(31, 104);
             player_bought.Name = "player_bought";
             player_bought.Size = new Size(64, 23);
-            player_bought.TabIndex = 1;
+            player_bought.TabIndex = 2;
             // 
             // calculate_button
             // 
@@ -160,7 +161,7 @@
             calculate_button.Margin = new Padding(3, 20, 3, 20);
             calculate_button.Name = "calculate_button";
             calculate_button.Size = new Size(265, 52);
-            calculate_button.TabIndex = 16;
+            calculate_button.TabIndex = 4;
             calculate_button.Text = "Calculate Payments";
             calculate_button.UseVisualStyleBackColor = true;
             calculate_button.Visible = false;
@@ -180,6 +181,7 @@
             // app_panel
             // 
             app_panel.AutoScroll = true;
+            app_panel.Controls.Add(test_data);
             app_panel.Controls.Add(payment_text_template);
             app_panel.Controls.Add(calculate_button);
             app_panel.Controls.Add(PlayerGroupTemplate);
@@ -190,12 +192,24 @@
             app_panel.Size = new Size(803, 483);
             app_panel.TabIndex = 17;
             // 
+            // test_data
+            // 
+            test_data.AutoSize = true;
+            test_data.Location = new Point(542, 94);
+            test_data.Name = "test_data";
+            test_data.Size = new Size(96, 19);
+            test_data.TabIndex = 19;
+            test_data.Text = "Use Test Data";
+            test_data.UseVisualStyleBackColor = true;
+            test_data.CheckedChanged += test_data_CheckedChanged;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(804, 481);
             Controls.Add(app_panel);
+            FormBorderStyle = FormBorderStyle.FixedToolWindow;
             Name = "Form1";
             Text = "Poker Square";
             ((System.ComponentModel.ISupportInitialize)playerNumber).EndInit();
@@ -221,5 +235,6 @@
         private TextBox player_bought;
         private NumericUpDown playerNumber;
         private Label playerNumber_label;
+        private CheckBox test_data;
     }
 }

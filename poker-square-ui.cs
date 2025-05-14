@@ -1,5 +1,9 @@
 //using static System.Windows.Forms.AxHost;
 
+using System.ComponentModel;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
+
 namespace Poker_Square
 {
     public partial class Form1 : Form
@@ -20,9 +24,11 @@ namespace Poker_Square
         {
             int fullRows = numBoxes / 3;
             int lastRow = numBoxes % 3;
-            return Enumerable.Repeat(3, fullRows)
-                             .Concat(lastRow > 0 ? [lastRow] : Array.Empty<int>())
-                             .ToArray();
+
+            var gridPlan = Enumerable.Repeat(3, fullRows).ToList();
+            if (lastRow > 0) gridPlan.Add(lastRow);
+
+            return gridPlan.ToArray();
 
             //int[] gridPlan;
             //int leftOver = numBoxes % 3;
@@ -54,7 +60,7 @@ namespace Poker_Square
         private void playerNumber_ValueChanged(object sender, EventArgs e)
         {
             ClearErrorMessage();
-            ClearSpacers();
+            ClearAllSpacers();
             ClearPaymentText();
 
             gridPlan = CalculateGridPlan((int)playerNumber.Value);
@@ -75,7 +81,7 @@ namespace Poker_Square
             else
             {
                 int difference = (int)playerNumber.Value - playerBoxes.Count();
-                for(int i = 0; i < difference; i++)
+                for (int i = 0; i < difference; i++)
                 {
                     currentPlayer = playerBoxes.Count() + 1;
                     GroupBox newGroup = CreateGroupBox(PlayerGroupTemplate, currentPlayer);
@@ -108,8 +114,7 @@ namespace Poker_Square
             // Conditionally create or update the spacer
             if (!app_panel.Controls.ContainsKey("button_spacer"))
             {
-                Panel buttonSpacer = AddSpacer(20, calculate_button, "button_spacer");
-                app_panel.Controls.Add(buttonSpacer);
+                app_panel.Controls.Add(CreateSpacer(20, calculate_button, "button_spacer"));
             }
             else
             {
@@ -119,6 +124,11 @@ namespace Poker_Square
 
         private void Calculate_Button_Click(object sender, EventArgs e)
         {
+            if (!VerifyPopulatedTextBoxes())
+            {
+                CreateErrorMessage("Make sure all text boxes have some value.");
+                return;
+            }
             players.Clear();
             payments.Clear();
             ClearPaymentText();
@@ -132,25 +142,24 @@ namespace Poker_Square
                 for (int i = 0; i < payments.Count(); i++)
                 {
                     Label newLabel = CreatePaymentText(payment_text_template, payments[i], i + 1);
-                    newLabel.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
                     app_panel.Controls.Add(newLabel);
+                    newLabel.Location = new System.Drawing.Point(CalculateCenterX(newLabel), currentY);
                     currentY += payment_text_template.Height + 20;
                 }
-                Label allSquare = new Label();
-                allSquare.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
-                allSquare.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
-                allSquare.AutoSize = true;
-                allSquare.Text = "All Square!";
-                allSquare.Name = "all_square";
+                Label allSquare = new Label()
+                {
+                    Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                    AutoSize = true,
+                    Text = "All Square!",
+                    Name = "all_square"
+                };
                 app_panel.Controls.Add(allSquare);
-                app_panel.Controls.Add(AddSpacer(20, allSquare, "all_square_spacer"));
+                allSquare.Location = new System.Drawing.Point(CalculateCenterX(allSquare), currentY);
+                app_panel.Controls.Add(CreateSpacer(20, allSquare, "all_square_spacer"));
             }
             catch (ChipCountMismatchException ex)
             {
-                Label error = CreateErrorMessage(ex.Message);
-                error.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
-                app_panel.Controls.Add(error);
-                app_panel.Controls.Add(AddSpacer(20, error, "error_spacer"));
+                CreateErrorMessage(ex.Message);
             }
         }
 
@@ -161,6 +170,7 @@ namespace Poker_Square
                 Name = "PlayerGroup_" + index,
                 Text = original.Text + " " + (index), // Give each group a unique name
                 Size = original.Size,
+                TabIndex = original.TabIndex
             };
 
             // Clone each control inside the original GroupBox
@@ -171,6 +181,11 @@ namespace Poker_Square
                 newControl.Size = control.Size;
                 newControl.Location = control.Location;
                 newControl.Name = control.Name + "_Player" + index;
+                if (newControl is TextBox)
+                {
+                    newControl.TabIndex = control.TabIndex;
+                    newControl.TextChanged += textbox_TextChanged;
+                }
                 newGroup.Controls.Add(newControl);
             }
             newGroup.Visible = true;
@@ -191,7 +206,7 @@ namespace Poker_Square
             return newPaymentText;
         }
 
-        private Label CreateErrorMessage(String message)
+        private void CreateErrorMessage(string message)
         {
             Label errorLabel = new Label();
             errorLabel.Name = "error_text";
@@ -200,7 +215,58 @@ namespace Poker_Square
             errorLabel.AutoSize = true;
             errorLabel.Text = message;
             errorLabel.Visible = true;
-            return errorLabel;
+            app_panel.Controls.Add(errorLabel);
+            errorLabel.Location = new System.Drawing.Point(CalculateCenterX(errorLabel), calculate_button.Location.Y + calculate_button.Height + 20);
+            app_panel.Controls.Add(CreateSpacer(20, errorLabel, "error_spacer"));
+        }
+
+        //Adds an amount of space below the specified "lastControl" and names it something
+        private Panel CreateSpacer(int amount, Control lastControl, string name)
+        {
+            Panel spacer = new Panel();
+            spacer.Name = name;
+            spacer.Size = new Size(1, amount);
+            spacer.Location = new System.Drawing.Point(0, lastControl.Location.Y + lastControl.Height);
+            spacer.BackColor = Color.Transparent;
+            return spacer;
+        }
+
+        private void CreateTestData()
+        {
+            Random rand = new Random();
+            int playerNum = rand.Next(2, 9);
+
+
+            decimal winningsRemaining = 20 * playerNum;
+            playerNumber.Value = playerNum;
+            for (int i = 1; i <= playerBoxes.Count(); i++)
+            {
+                foreach (Control c in playerBoxes[i - 1].Controls)
+                {
+                    if (c.Name.StartsWith("player_name"))
+                    {
+                        c.Text = "Player " + i;
+                    }
+                    else if (c.Name.StartsWith("player_bought"))
+                    {
+                        c.Text = "20";
+                    }
+                    else if (c.Name.StartsWith("player_final"))
+                    {
+                        if (i == playerBoxes.Count())
+                        {
+                            c.Text = winningsRemaining.ToString();
+                        }
+                        else
+                        {
+                            decimal max = winningsRemaining;
+                            decimal final = Math.Round((decimal)rand.NextDouble() * max, 2);
+                            winningsRemaining -= final;
+                            c.Text = final.ToString();
+                        }
+                    }
+                }
+            }
         }
 
         private void ClearPaymentText()
@@ -211,7 +277,7 @@ namespace Poker_Square
                 if (control.Name.Contains("PaymentText_"))
                 {
                     paymentLabels.Add(control);
-                }    
+                }
             }
             foreach (Control control in paymentLabels)
             {
@@ -228,13 +294,38 @@ namespace Poker_Square
             }
         }
 
+        private void ClearAllSpacers()
+        {
+            for (int i = app_panel.Controls.Count - 1; i >= 0; i--)
+            {
+                if (app_panel.Controls[i].Name.Contains("_spacer"))
+                {
+                    app_panel.Controls.RemoveAt(i);
+                }
+            }
+        }
+
+        private void ClearTestData()
+        {
+            for (int i = 1; i <= playerBoxes.Count(); i++)
+            {
+                foreach (Control c in playerBoxes[i - 1].Controls)
+                {
+                    if (c is TextBox)
+                    {
+                        c.Text = "";
+                    }
+                }
+            }
+        }
+
         private void PopulatePlayersList()
         {
             foreach (GroupBox playerBox in playerBoxes)
             {
                 string name = "";
-                double buyIn = 0;
-                double totalCount = 0;
+                decimal buyIn = 0;
+                decimal totalCount = 0;
                 foreach (Control control in playerBox.Controls)
                 {
                     if (control.Name.StartsWith("player_name"))
@@ -244,12 +335,12 @@ namespace Poker_Square
                     }
                     if (control.Name.StartsWith("player_final"))
                     {
-                        totalCount = double.Parse(control.Text);
+                        totalCount = decimal.Parse(control.Text);
                         continue;
                     }
                     if (control.Name.StartsWith("player_bought"))
                     {
-                        buyIn = double.Parse(control.Text);
+                        buyIn = decimal.Parse(control.Text);
                         continue;
                     }
                 }
@@ -274,7 +365,7 @@ namespace Poker_Square
             {
                 Player debtor = negatives[0];
                 Player creditor = positives[0];
-                double paymentAmount = Math.Min(Math.Abs(debtor.balance), creditor.balance);
+                decimal paymentAmount = Math.Min(Math.Abs(debtor.balance), creditor.balance);
 
                 payments.Add(new Payment(debtor.name, creditor.name, paymentAmount));
                 debtor.balance += paymentAmount;
@@ -332,40 +423,65 @@ namespace Poker_Square
 
         private void VerifyChipCount()
         {
-            double totalBuyIn = 0;
-            double totalChipValue = 0;
+            decimal totalBuyIn = 0;
+            decimal totalChipValue = 0;
             foreach (Player player in players)
             {
                 totalBuyIn += player.buyIn;
                 totalChipValue += player.chipValue;
             }
-            if (totalBuyIn != totalChipValue)
+            if (totalBuyIn != totalChipValue) //Written this way to avoid floating point precision errors
             {
                 string message = "Verify chip count\nTotal buy in: $" + totalBuyIn + "\nTotal chip value: $" + totalChipValue;
                 throw new ChipCountMismatchException(message);
             }
         }
 
-        //Adds an amount of space below the specified "lastControl" and names it something
-        private Panel AddSpacer(int amount, Control lastControl, string name)
+        private bool VerifyPopulatedTextBoxes()
         {
-            Panel spacer = new Panel();
-            spacer.Name = name;
-            spacer.Size = new Size(1, amount);
-            spacer.Location = new System.Drawing.Point(0, lastControl.Location.Y + lastControl.Height);
-            spacer.BackColor = Color.Transparent;
-            return spacer;
-        }
-
-        private void ClearSpacers()
-        {
-            foreach (Control control in app_panel.Controls)
+            bool conclusion = true;
+            foreach (GroupBox playerBox in playerBoxes)
             {
-                if (control.Name.Contains("_spacer"))
+                foreach (Control c in playerBox.Controls)
                 {
-                    app_panel.Controls.Remove(control);
+                    if (c is TextBox)
+                    {
+                        c.BackColor = Color.White;
+                        if (c.Text.Equals(""))
+                        {
+                            c.BackColor = Color.FromArgb(255, 184, 184);
+                            conclusion = false;
+                        }
+                    }
                 }
             }
+            return conclusion;
+        }
+
+        private void textbox_TextChanged(object sender, EventArgs e)
+        {
+            if (sender is TextBox textbox)
+            {
+                textbox.BackColor = Color.White;
+            }
+        }
+
+        private void test_data_CheckedChanged(object sender, EventArgs e)
+        {
+            if (test_data.Checked)
+            { 
+                CreateTestData();
+            }
+            else
+            {
+                ClearTestData();
+            }
+        }
+
+        //If the control is auto sized, this MUST be called AFTER adding it to the panel
+        private int CalculateCenterX(Control control)
+        {
+            return (800 - control.Width) / 2;
         }
     }
 
