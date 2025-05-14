@@ -7,10 +7,7 @@ namespace Poker_Square
         List<Player> players = new List<Player>();
         List<GroupBox> playerBoxes = new List<GroupBox>();
         List<Payment> payments = new List<Payment>();
-        List<Label> paymentLabels = new List<Label>();
-        List<Panel> spacers = new List<Panel>();
         int[] gridPlan; //Array containing the number of boxes in each row
-        bool wasError = false; //Keep track of whether or not there was an error
 
         public Form1()
         {
@@ -56,11 +53,10 @@ namespace Poker_Square
 
         private void playerNumber_ValueChanged(object sender, EventArgs e)
         {
-            if (wasError)
-            {
-                ClearErrorMessage();
-            }
+            ClearErrorMessage();
             ClearSpacers();
+            ClearPaymentText();
+
             gridPlan = CalculateGridPlan((int)playerNumber.Value);
 
             int gutter = 73; //Space between each box
@@ -103,7 +99,6 @@ namespace Poker_Square
                 }
                 currentY += PlayerGroupTemplate.Height + 20;
             }
-            ClearPaymentText();
 
             //Update position of calculate button
             Control lastGroup = playerBoxes[playerBoxes.Count() - 1];
@@ -111,28 +106,23 @@ namespace Poker_Square
             calculate_button.Visible = true;
 
             // Conditionally create or update the spacer
-            Panel buttonSpacer = spacers.Find(spacer => spacer.Name == "button_spacer");
-            if (buttonSpacer == null)
+            if (!app_panel.Controls.ContainsKey("button_spacer"))
             {
-                buttonSpacer = AddSpacer(20, calculate_button, "button_spacer");
+                Panel buttonSpacer = AddSpacer(20, calculate_button, "button_spacer");
                 app_panel.Controls.Add(buttonSpacer);
-                spacers.Add(buttonSpacer);
             }
             else
             {
-                buttonSpacer.Location = new System.Drawing.Point(0, calculate_button.Location.Y + calculate_button.Height);
+                app_panel.Controls.Find("button_spacer", false)[0].Location = new System.Drawing.Point(0, calculate_button.Location.Y + calculate_button.Height);
             }
         }
 
         private void Calculate_Button_Click(object sender, EventArgs e)
         {
-            ClearPaymentText();
             players.Clear();
             payments.Clear();
-            if (wasError)
-            {
-                ClearErrorMessage();
-            }
+            ClearPaymentText();
+            ClearErrorMessage();
             PopulatePlayersList();
             int currentY = calculate_button.Location.Y + calculate_button.Height + 20;
             try
@@ -144,7 +134,6 @@ namespace Poker_Square
                     Label newLabel = CreatePaymentText(payment_text_template, payments[i], i + 1);
                     newLabel.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
                     app_panel.Controls.Add(newLabel);
-                    paymentLabels.Add(newLabel);
                     currentY += payment_text_template.Height + 20;
                 }
                 Label allSquare = new Label();
@@ -158,7 +147,6 @@ namespace Poker_Square
             }
             catch (ChipCountMismatchException ex)
             {
-                wasError = true;
                 Label error = CreateErrorMessage(ex.Message);
                 error.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
                 app_panel.Controls.Add(error);
@@ -217,18 +205,27 @@ namespace Poker_Square
 
         private void ClearPaymentText()
         {
-            foreach (Label paymentLabel in paymentLabels)
+            List<Control> paymentLabels = new List<Control>();
+            foreach (Control control in app_panel.Controls)
             {
-                app_panel.Controls.Remove(paymentLabel);
+                if (control.Name.Contains("PaymentText_"))
+                {
+                    paymentLabels.Add(control);
+                }    
             }
-            paymentLabels.Clear();
+            foreach (Control control in paymentLabels)
+            {
+                app_panel.Controls.Remove(control);
+            }
             app_panel.Controls.RemoveByKey("all_square");
         }
 
         private void ClearErrorMessage()
         {
-            app_panel.Controls.RemoveByKey("error_text");
-            wasError = false;
+            if (app_panel.Controls.ContainsKey("error_text"))
+            {
+                app_panel.Controls.RemoveByKey("error_text");
+            }
         }
 
         private void PopulatePlayersList()
@@ -357,17 +354,18 @@ namespace Poker_Square
             spacer.Size = new Size(1, amount);
             spacer.Location = new System.Drawing.Point(0, lastControl.Location.Y + lastControl.Height);
             spacer.BackColor = Color.Transparent;
-            spacers.Add(spacer);
             return spacer;
         }
 
         private void ClearSpacers()
         {
-            foreach (Panel spacer in spacers)
+            foreach (Control control in app_panel.Controls)
             {
-                app_panel.Controls.Remove(spacer);
+                if (control.Name.Contains("_spacer"))
+                {
+                    app_panel.Controls.Remove(control);
+                }
             }
-            spacers.Clear();
         }
     }
 
