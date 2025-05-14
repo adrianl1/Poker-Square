@@ -11,4 +11,9 @@ public class Payment
 		this.player2 = player2;
 		this.amount = amount;
 	}
+
+    public override string ToString()
+    {
+        return "{" + this.player1 + ", " + this.player2 + ", " + this.amount + "}"; ;
+    }
 }

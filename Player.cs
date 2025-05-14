@@ -5,7 +5,6 @@ public class Player
     public string name { get; set; }
     public double buyIn { get; set; }
     public double chipValue { get; set; }
-    public double difference { get; set; }
     public double balance { get; set; }
 
     public Player(string name, double buyIn, double chipValue)
@@ -13,7 +12,11 @@ public class Player
         this.name = name;
         this.buyIn = buyIn;
         this.chipValue = chipValue;
-        this.difference = 0;
         this.balance = 0;
+    }
+
+    public override string ToString()
+    {
+        return "{" + this.name + ", " + this.buyIn + ", " + this.chipValue + "}";
     }
 }

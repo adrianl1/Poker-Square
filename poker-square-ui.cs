@@ -4,89 +4,176 @@ namespace Poker_Square
 {
     public partial class Form1 : Form
     {
+        List<Player> players = new List<Player>();
+        List<GroupBox> playerBoxes = new List<GroupBox>();
+        List<Payment> payments = new List<Payment>();
+        List<Label> paymentLabels = new List<Label>();
+        List<Panel> spacers = new List<Panel>();
+        int[] gridPlan; //Array containing the number of boxes in each row
+        bool wasError = false; //Keep track of whether or not there was an error
+
         public Form1()
         {
             InitializeComponent();
+            playerNumber_ValueChanged(null, null);
         }
 
-        private void submit_playerNumber_Click(object sender, EventArgs e)
+        // Returns an array with each element representing the number of boxes in each row
+        private int[] CalculateGridPlan(int numBoxes)
         {
-            RemoveOldPaymentText();
-            RemoveOldGroupBoxes();
+            int fullRows = numBoxes / 3;
+            int lastRow = numBoxes % 3;
+            return Enumerable.Repeat(3, fullRows)
+                             .Concat(lastRow > 0 ? [lastRow] : Array.Empty<int>())
+                             .ToArray();
 
-            //Create player info boxes
+            //int[] gridPlan;
+            //int leftOver = numBoxes % 3;
+            //int lastRow;
+            //if (leftOver == 0)
+            //{
+            //    gridPlan = new int[numBoxes / 3];
+            //    lastRow = 3;
+            //}
+            //else
+            //{
+            //    gridPlan = new int[(numBoxes / 3) + 1];
+            //    lastRow = leftOver;
+            //}
+            //for (int i = 0; i < gridPlan.Length; i++)
+            //{
+            //    if (i == gridPlan.Length - 1)
+            //    {
+            //        gridPlan[i] = lastRow;
+            //    }
+            //    else
+            //    {
+            //        gridPlan[i] = 3;
+            //    }
+            //}
+            //return gridPlan;
+        }
+
+        private void playerNumber_ValueChanged(object sender, EventArgs e)
+        {
+            if (wasError)
+            {
+                ClearErrorMessage();
+            }
+            ClearSpacers();
+            gridPlan = CalculateGridPlan((int)playerNumber.Value);
+
             int gutter = 73; //Space between each box
             int currentY = PlayerGroupTemplate.Location.Y; //Y position of the template
             int currentPlayer = 1;
-            int[] gridPlan = CalculateGridPlan((int)playerNumber.Value); //Array containing the number of boxes in each row
-            for(int i = 0; i < gridPlan.Length; i++)
+            //Remove boxes if the number decreased
+            if (playerNumber.Value < playerBoxes.Count())
             {
+                for (int i = playerBoxes.Count() - 1; i >= playerNumber.Value; i--)
+                {
+                    app_panel.Controls.Remove(playerBoxes[i]);
+                    playerBoxes.Remove(playerBoxes[i]);
+                }
+            }
+            //Add boxes if the number increased
+            else
+            {
+                int difference = (int)playerNumber.Value - playerBoxes.Count();
+                for(int i = 0; i < difference; i++)
+                {
+                    currentPlayer = playerBoxes.Count() + 1;
+                    GroupBox newGroup = CreateGroupBox(PlayerGroupTemplate, currentPlayer);
+                    app_panel.Controls.Add(newGroup);
+                    playerBoxes.Add(newGroup);
+                }
+            }
+            //Set box locations
+            currentPlayer = 1;
+            for (int i = 0; i < gridPlan.Length; i++)
+            {
+                if (gridPlan[i] != 3)
+                {
+                    gutter = (800 - (170 * gridPlan[i])) / (gridPlan[i] + 1);
+                }
                 for (int j = 0; j < gridPlan[i]; j++)
                 {
-                    if (gridPlan[i] != 3)
-                    {
-                        gutter = (800 - (170 * gridPlan[i])) / (gridPlan[i] + 1);
-                    }
-                    GroupBox newGroup = CloneGroupBox(PlayerGroupTemplate, currentPlayer);
-                    newGroup.Location = new System.Drawing.Point(gutter + (j * (PlayerGroupTemplate.Width + gutter)), currentY);
-                    app_panel.Controls.Add(newGroup);
+                    GroupBox currentGroup = playerBoxes[currentPlayer - 1];
+                    currentGroup.Location = new System.Drawing.Point(gutter + (j * (PlayerGroupTemplate.Width + gutter)), currentY);
                     currentPlayer++;
                 }
                 currentY += PlayerGroupTemplate.Height + 20;
             }
+            ClearPaymentText();
 
-            //Show calculate button
-            if ((int)playerNumber.Value == 0)
+            //Update position of calculate button
+            Control lastGroup = playerBoxes[playerBoxes.Count() - 1];
+            calculate_button.Location = new System.Drawing.Point(calculate_button.Location.X, lastGroup.Location.Y + lastGroup.Size.Height + 20);
+            calculate_button.Visible = true;
+
+            // Conditionally create or update the spacer
+            Panel buttonSpacer = spacers.Find(spacer => spacer.Name == "button_spacer");
+            if (buttonSpacer == null)
             {
-                Calculate_Button.Location = new System.Drawing.Point(Calculate_Button.Location.X, 384);
-                Calculate_Button.Visible = false;
+                buttonSpacer = AddSpacer(20, calculate_button, "button_spacer");
+                app_panel.Controls.Add(buttonSpacer);
+                spacers.Add(buttonSpacer);
             }
             else
             {
-                Control lastGroup = app_panel.Controls[app_panel.Controls.Count - 1];
-                Calculate_Button.Location = new System.Drawing.Point(Calculate_Button.Location.X, lastGroup.Location.Y + lastGroup.Size.Height + 20);
-                Calculate_Button.Visible = true;
+                buttonSpacer.Location = new System.Drawing.Point(0, calculate_button.Location.Y + calculate_button.Height);
             }
-
-            app_panel.AutoScrollMinSize = new Size(0, currentY + 72); //Adds space to the bottom of the scrollable area
         }
 
-        // Returns an array with each element representing the number of boxes in a row
-        private int[] CalculateGridPlan(int numBoxes)
+        private void Calculate_Button_Click(object sender, EventArgs e)
         {
-            int[] gridPlan;
-            int leftOver = numBoxes % 3;
-            int lastRow;
-            if (leftOver == 0)
+            ClearPaymentText();
+            players.Clear();
+            payments.Clear();
+            if (wasError)
             {
-                gridPlan = new int[numBoxes / 3];
-                lastRow = 3;
+                ClearErrorMessage();
             }
-            else
+            PopulatePlayersList();
+            int currentY = calculate_button.Location.Y + calculate_button.Height + 20;
+            try
             {
-                gridPlan = new int[(numBoxes / 3) + 1];
-                lastRow = leftOver;
-            }
-            for (int i = 0; i < gridPlan.Length; i++)
-            {
-                if (i == gridPlan.Length - 1)
+                VerifyChipCount();
+                SquareUp();
+                for (int i = 0; i < payments.Count(); i++)
                 {
-                    gridPlan[i] = lastRow;
+                    Label newLabel = CreatePaymentText(payment_text_template, payments[i], i + 1);
+                    newLabel.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
+                    app_panel.Controls.Add(newLabel);
+                    paymentLabels.Add(newLabel);
+                    currentY += payment_text_template.Height + 20;
                 }
-                else
-                {
-                    gridPlan[i] = 3;
-                }
+                Label allSquare = new Label();
+                allSquare.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
+                allSquare.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
+                allSquare.AutoSize = true;
+                allSquare.Text = "All Square!";
+                allSquare.Name = "all_square";
+                app_panel.Controls.Add(allSquare);
+                app_panel.Controls.Add(AddSpacer(20, allSquare, "all_square_spacer"));
             }
-            return gridPlan;
+            catch (ChipCountMismatchException ex)
+            {
+                wasError = true;
+                Label error = CreateErrorMessage(ex.Message);
+                error.Location = new System.Drawing.Point(payment_text_template.Location.X, currentY);
+                app_panel.Controls.Add(error);
+                app_panel.Controls.Add(AddSpacer(20, error, "error_spacer"));
+            }
         }
 
-        private GroupBox CloneGroupBox(GroupBox original, int index)
+        private GroupBox CreateGroupBox(GroupBox original, int index)
         {
-            GroupBox clone = new GroupBox();
-            clone.Name = "PlayerGroup_" + index;
-            clone.Text = original.Text + " " + (index); // Give each group a unique name
-            clone.Size = original.Size;
+            GroupBox newGroup = new GroupBox
+            {
+                Name = "PlayerGroup_" + index,
+                Text = original.Text + " " + (index), // Give each group a unique name
+                Size = original.Size,
+            };
 
             // Clone each control inside the original GroupBox
             foreach (Control control in original.Controls)
@@ -96,57 +183,196 @@ namespace Poker_Square
                 newControl.Size = control.Size;
                 newControl.Location = control.Location;
                 newControl.Name = control.Name + "_Player" + index;
-                clone.Controls.Add(newControl);
+                newGroup.Controls.Add(newControl);
             }
-            clone.Visible = true;
+            newGroup.Visible = true;
 
-            return clone;
+            return newGroup;
         }
 
-        private void RemoveOldGroupBoxes()
+        private Label CreatePaymentText(Label labelTemplate, Payment payment, int index)
         {
-            for (int i = app_panel.Controls.Count - 1; i >= 0; i--)
+            Label newPaymentText = new Label
+            {
+                Name = "PaymentText_" + index,
+                Font = labelTemplate.Font,
+                AutoSize = true,
+                Text = payment.player1 + " pays " + payment.player2 + " $" + payment.amount,
+                Visible = true
+            };
+            return newPaymentText;
+        }
+
+        private Label CreateErrorMessage(String message)
+        {
+            Label errorLabel = new Label();
+            errorLabel.Name = "error_text";
+            errorLabel.Font = new Font("Segoe UI", 24F);
+            errorLabel.ForeColor = Color.FromArgb(255, 0, 0);
+            errorLabel.AutoSize = true;
+            errorLabel.Text = message;
+            errorLabel.Visible = true;
+            return errorLabel;
+        }
+
+        private void ClearPaymentText()
+        {
+            foreach (Label paymentLabel in paymentLabels)
+            {
+                app_panel.Controls.Remove(paymentLabel);
+            }
+            paymentLabels.Clear();
+            app_panel.Controls.RemoveByKey("all_square");
+        }
+
+        private void ClearErrorMessage()
+        {
+            app_panel.Controls.RemoveByKey("error_text");
+            wasError = false;
+        }
+
+        private void PopulatePlayersList()
+        {
+            foreach (GroupBox playerBox in playerBoxes)
+            {
+                string name = "";
+                double buyIn = 0;
+                double totalCount = 0;
+                foreach (Control control in playerBox.Controls)
                 {
-                if (app_panel.Controls[i] is GroupBox && app_panel.Controls[i].Name.StartsWith("PlayerGroup_"))
+                    if (control.Name.StartsWith("player_name"))
+                    {
+                        name = control.Text;
+                        continue;
+                    }
+                    if (control.Name.StartsWith("player_final"))
+                    {
+                        totalCount = double.Parse(control.Text);
+                        continue;
+                    }
+                    if (control.Name.StartsWith("player_bought"))
+                    {
+                        buyIn = double.Parse(control.Text);
+                        continue;
+                    }
+                }
+                players.Add(new Player(name, buyIn, totalCount));
+            }
+        }
+
+        private void SquareUp()
+        {
+            List<Player> negatives = players.Where(player => player.chipValue - player.buyIn < 0).ToList();
+            List<Player> positives = players.Where(player => player.chipValue - player.buyIn > 0).ToList();
+
+            //Calculate differences
+            foreach (Player player in players)
+            {
+                //The balance should be updated during the process of squaring up
+                player.balance = player.chipValue - player.buyIn;
+            }
+
+            //Square up players
+            while (negatives.Count != 0)
+            {
+                Player debtor = negatives[0];
+                Player creditor = positives[0];
+                double paymentAmount = Math.Min(Math.Abs(debtor.balance), creditor.balance);
+
+                payments.Add(new Payment(debtor.name, creditor.name, paymentAmount));
+                debtor.balance += paymentAmount;
+                creditor.balance -= paymentAmount;
+
+                if (debtor.balance == 0)
                 {
-                    app_panel.Controls.RemoveAt(i);
+                    negatives.RemoveAt(0);
+                }
+                if (creditor.balance == 0)
+                {
+                    positives.RemoveAt(0);
                 }
             }
+
+            //This loop starts at the first negative player in the list
+            //while (negatives.Count != 0)
+            //{
+            //    //Check for any players that owe the exact amount that someone else made
+            //    for (int i = 0; i < negatives.Count; i++)
+            //    {
+            //        for (int j = 0; j < positives.Count; j++)
+            //        {
+            //            if (Math.Abs(negatives[i].balance) == positives[j].balance)
+            //            {
+            //                payments.Add(new Payment(negatives[i].name, positives[j].name, positives[j].balance));
+            //                negatives.RemoveAt(i);
+            //                positives.RemoveAt(j);
+            //                j--;
+            //            }
+            //        }
+            //    }
+
+            //    if (negatives.Count == 0)
+            //    {
+            //        break;
+            //    }
+
+            //    //Square up the next negative player
+            //    if (positives[0].balance > Math.Abs(negatives[0].balance))
+            //    {
+            //        payments.Add(new Payment(negatives[0].name, positives[0].name, Math.Abs(negatives[0].balance)));
+            //        positives[0].balance -= Math.Abs(negatives[0].balance);
+            //        negatives.RemoveAt(0);
+            //    }
+            //    else
+            //    {
+            //        payments.Add(new Payment(negatives[0].name, positives[0].name, positives[0].balance));
+            //        negatives[0].balance += positives[0].balance;
+            //        positives.RemoveAt(0);
+            //    }
+            //}
+
         }
 
-        private void Calculate_Button_Click(object sender, EventArgs e)
+        private void VerifyChipCount()
         {
-            RemoveOldPaymentText();
-
-            int startX = payment_text_template.Location.X;
-            int startY = payment_text_template.Location.Y;
-            for (int i = 0; i < (int)playerNumber.Value; i++)
+            double totalBuyIn = 0;
+            double totalChipValue = 0;
+            foreach (Player player in players)
             {
-                Label newLabel = clonePaymentText(payment_text_template, i + 1);
-                newLabel.Location = new System.Drawing.Point(startX, startY + (i * (payment_text_template.Height + 20)));
-                app_panel.Controls.Add (newLabel);
+                totalBuyIn += player.buyIn;
+                totalChipValue += player.chipValue;
+            }
+            if (totalBuyIn != totalChipValue)
+            {
+                string message = "Verify chip count\nTotal buy in: $" + totalBuyIn + "\nTotal chip value: $" + totalChipValue;
+                throw new ChipCountMismatchException(message);
             }
         }
 
-        private Label clonePaymentText(Label original, int index)
+        //Adds an amount of space below the specified "lastControl" and names it something
+        private Panel AddSpacer(int amount, Control lastControl, string name)
         {
-            Label clone = new Label();
-            clone.Name = "PaymentText_" + index;
-            clone.Size = original.Size;
-            clone.Text = index + " pays " + index + " some money";
-            clone.Visible = true;
-            return clone;
+            Panel spacer = new Panel();
+            spacer.Name = name;
+            spacer.Size = new Size(1, amount);
+            spacer.Location = new System.Drawing.Point(0, lastControl.Location.Y + lastControl.Height);
+            spacer.BackColor = Color.Transparent;
+            spacers.Add(spacer);
+            return spacer;
         }
 
-        private void RemoveOldPaymentText()
+        private void ClearSpacers()
         {
-            for (int i = app_panel.Controls.Count - 1; i >= 0; i--)
+            foreach (Panel spacer in spacers)
             {
-                if (app_panel.Controls[i] is Label && app_panel.Controls[i].Name.StartsWith("PaymentText_"))
-                {
-                    app_panel.Controls.RemoveAt(i);
-                }
+                app_panel.Controls.Remove(spacer);
             }
+            spacers.Clear();
         }
+    }
+
+    class ChipCountMismatchException : Exception
+    {
+        public ChipCountMismatchException(string message) : base(message){ }
     }
 }
