@@ -7,6 +7,11 @@ namespace Poker_Square
         List<Payment> payments = new List<Payment>();
         int[] gridPlan; //Array containing the number of boxes in each row
 
+        int minGutter = 75;
+        int playersPerRow = 3;
+        double sidePaddingPercent = .1;
+        int sidePadding = 0;
+
         public PokerSquareForm()
         {
             InitializeComponent();
@@ -16,10 +21,10 @@ namespace Poker_Square
         // Returns an array with each element representing the number of boxes in each row
         private int[] CalculateGridPlan(int numBoxes)
         {
-            int fullRows = numBoxes / 3;
-            int lastRow = numBoxes % 3;
+            int fullRows = numBoxes / playersPerRow;
+            int lastRow = numBoxes % playersPerRow;
 
-            var gridPlan = Enumerable.Repeat(3, fullRows).ToList();
+            var gridPlan = Enumerable.Repeat(playersPerRow, fullRows).ToList();
             if (lastRow > 0) gridPlan.Add(lastRow);
 
             return gridPlan.ToArray();
@@ -30,19 +35,14 @@ namespace Poker_Square
             ClearErrorMessage();
             ClearAllSpacers();
             ClearPaymentText();
-
-            gridPlan = CalculateGridPlan((int)playerNumber.Value);
-
-            int gutter = 73; //Space between each box
-            int currentY = PlayerGroupTemplate.Location.Y; //Y position of the template
-            int currentPlayer = 1;
+            int currentPlayer;
 
             //Remove boxes if the number decreased
             if (playerNumber.Value < playerBoxes.Count())
             {
                 for (int i = playerBoxes.Count() - 1; i >= playerNumber.Value; i--)
                 {
-                    app_panel.Controls.Remove(playerBoxes[i]);
+                    Controls.Remove(playerBoxes[i]);
                     playerBoxes.Remove(playerBoxes[i]);
                 }
             }
@@ -55,42 +55,12 @@ namespace Poker_Square
                 {
                     currentPlayer = playerBoxes.Count() + 1;
                     GroupBox newGroup = CreateGroupBox(PlayerGroupTemplate, currentPlayer);
-                    app_panel.Controls.Add(newGroup);
+                    Controls.Add(newGroup);
                     playerBoxes.Add(newGroup);
                 }
             }
 
-            //Set box locations
-            currentPlayer = 1;
-            for (int i = 0; i < gridPlan.Length; i++)
-            {
-                if (gridPlan[i] != 3)
-                {
-                    gutter = (800 - (170 * gridPlan[i])) / (gridPlan[i] + 1);
-                }
-                for (int j = 0; j < gridPlan[i]; j++)
-                {
-                    GroupBox currentGroup = playerBoxes[currentPlayer - 1];
-                    currentGroup.Location = new System.Drawing.Point(gutter + (j * (PlayerGroupTemplate.Width + gutter)), currentY);
-                    currentPlayer++;
-                }
-                currentY += PlayerGroupTemplate.Height + 20;
-            }
-
-            //Update position of calculate button
-            Control lastGroup = playerBoxes[playerBoxes.Count() - 1];
-            calculate_button.Location = new System.Drawing.Point(calculate_button.Location.X, lastGroup.Location.Y + lastGroup.Size.Height + 20);
-            calculate_button.Visible = true;
-
-            // Conditionally create or update the spacer
-            if (!app_panel.Controls.ContainsKey("button_spacer"))
-            {
-                app_panel.Controls.Add(CreateSpacer(20, calculate_button, "button_spacer"));
-            }
-            else
-            {
-                app_panel.Controls.Find("button_spacer", false)[0].Location = new System.Drawing.Point(0, calculate_button.Location.Y + calculate_button.Height);
-            }
+            ArrangeContent();
         }
 
         private void Calculate_Button_Click(object sender, EventArgs e)
@@ -98,12 +68,12 @@ namespace Poker_Square
             players.Clear();
             payments.Clear();
             ClearPaymentText();
+            ClearErrorMessage();
             if (!VerifyPopulatedTextBoxes())
             {
                 CreateErrorMessage("Make sure all text boxes have some value.");
                 return;
             }
-            ClearErrorMessage();
             PopulatePlayersList();
             int currentY = calculate_button.Location.Y + calculate_button.Height + 20;
             try
@@ -113,7 +83,7 @@ namespace Poker_Square
                 for (int i = 0; i < payments.Count(); i++)
                 {
                     Label newLabel = CreatePaymentText(payment_text_template, payments[i], i + 1);
-                    app_panel.Controls.Add(newLabel);
+                    Controls.Add(newLabel);
                     newLabel.Location = new System.Drawing.Point(CalculateCenterX(newLabel), currentY);
                     currentY += payment_text_template.Height + 20;
                 }
@@ -124,14 +94,48 @@ namespace Poker_Square
                     Text = "All Square!",
                     Name = "all_square"
                 };
-                app_panel.Controls.Add(allSquare);
+                Controls.Add(allSquare);
                 allSquare.Location = new System.Drawing.Point(CalculateCenterX(allSquare), currentY);
-                app_panel.Controls.Add(CreateSpacer(20, allSquare, "all_square_spacer"));
+                Controls.Add(CreateSpacer(20, allSquare, "all_square_spacer"));
             }
             catch (ChipCountMismatchException ex)
             {
                 CreateErrorMessage(ex.Message);
             }
+        }
+
+        private void textbox_TextChanged(object sender, EventArgs e)
+        {
+            if (sender is TextBox textbox)
+            {
+                textbox.BackColor = Color.White;
+            }
+        }
+
+        private void test_data_CheckedChanged(object sender, EventArgs e)
+        {
+            if (test_data.Checked)
+            {
+                CreateTestData();
+            }
+            else
+            {
+                ClearTestData();
+            }
+        }
+
+        private void window_SizeChanged(object sender, EventArgs e)
+        {
+            if(this.ClientSize.Width <= 940)
+            {
+                sidePaddingPercent = .1;
+            }
+            else
+            {
+                sidePaddingPercent = .2;
+            }
+                top_panel.Location = new System.Drawing.Point(CalculateCenterX(top_panel), top_panel.Location.Y);
+            ArrangeContent();
         }
 
         private GroupBox CreateGroupBox(GroupBox original, int index)
@@ -140,6 +144,7 @@ namespace Poker_Square
             {
                 Name = "PlayerGroup_" + index,
                 Text = original.Text + " " + (index), // Give each group a unique name
+                Font = original.Font,
                 Size = original.Size,
                 TabIndex = original.TabIndex
             };
@@ -152,6 +157,7 @@ namespace Poker_Square
                 newControl.Size = control.Size;
                 newControl.Location = control.Location;
                 newControl.Name = control.Name + "_Player" + index;
+                newControl.Font = control.Font;
                 if (newControl is TextBox)
                 {
                     newControl.TabIndex = control.TabIndex;
@@ -183,15 +189,16 @@ namespace Poker_Square
             {
                 Name = "error_text",
                 Font = new Font("Segoe UI", 24F),
-                ForeColor = Color.FromArgb(255, 0, 0),
+                BackColor = Color.FromArgb(200, 0, 0),
+                ForeColor = Color.White,
                 AutoSize = true,
                 Text = message,
                 Visible = true
             };
-            
-            app_panel.Controls.Add(errorLabel);
+
+            Controls.Add(errorLabel);
             errorLabel.Location = new System.Drawing.Point(CalculateCenterX(errorLabel), calculate_button.Location.Y + calculate_button.Height + 20);
-            app_panel.Controls.Add(CreateSpacer(20, errorLabel, "error_spacer"));
+            Controls.Add(CreateSpacer(20, errorLabel, "error_spacer"));
         }
 
         //Adds an amount of space below the specified "lastControl" and names it something
@@ -245,26 +252,26 @@ namespace Poker_Square
 
         private void ClearPaymentText()
         {
-            foreach (var control in app_panel.Controls.OfType<Label>()
+            foreach (var control in Controls.OfType<Label>()
                                       .Where(c => c.Name.StartsWith("PaymentText_") || c.Name == "all_square")
                                       .ToList())
             {
-                app_panel.Controls.Remove(control);
+                Controls.Remove(control);
             }
         }
 
         private void ClearErrorMessage()
         {
-            app_panel.Controls.RemoveByKey("error_text");
+            Controls.RemoveByKey("error_text");
         }
 
         private void ClearAllSpacers()
         {
-            for (int i = app_panel.Controls.Count - 1; i >= 0; i--)
+            for (int i = Controls.Count - 1; i >= 0; i--)
             {
-                if (app_panel.Controls[i].Name.Contains("_spacer"))
+                if (Controls[i].Name.Contains("_spacer"))
                 {
-                    app_panel.Controls.RemoveAt(i);
+                    Controls.RemoveAt(i);
                 }
             }
         }
@@ -374,36 +381,76 @@ namespace Poker_Square
                     {
                         textBox.BackColor = Color.FromArgb(255, 184, 184);
                         allValid = false;
-                        }
+                    }
                 }
             }
             return allValid;
         }
 
-        private void textbox_TextChanged(object sender, EventArgs e)
-        {
-            if (sender is TextBox textbox)
-            {
-                textbox.BackColor = Color.White;
-            }
-        }
-
-        private void test_data_CheckedChanged(object sender, EventArgs e)
-        {
-            if (test_data.Checked)
-            { 
-                CreateTestData();
-            }
-            else
-            {
-                ClearTestData();
-            }
-        }
-
         //If the control is auto sized, this MUST be called AFTER adding it to the panel
         private int CalculateCenterX(Control control)
         {
-            return (800 - control.Width) / 2;
+            return (this.ClientSize.Width - control.Width) / 2;
+        }
+
+        private int CalculateBaseGutter()
+        {
+            int calculatedGutter = minGutter;
+            int currentGutter = minGutter;
+            int numPlayerGroups = 1;
+            this.AutoScrollPosition = new Point(0, 0);
+            int totalWidth = this.ClientSize.Width - 1;
+            sidePadding = (int)(((double)this.ClientSize.Width) * sidePaddingPercent);
+            while (currentGutter >= minGutter && totalWidth <= this.ClientSize.Width)
+            {
+                currentGutter = ((this.ClientSize.Width - (sidePadding * 2)) - (numPlayerGroups * PlayerGroupTemplate.Width)) / (numPlayerGroups + 1);
+                totalWidth = (sidePadding * 2) + (numPlayerGroups * PlayerGroupTemplate.Width) + (numPlayerGroups * (currentGutter + 1));
+                if (currentGutter >= minGutter && totalWidth <= this.ClientSize.Width)
+                {
+                    calculatedGutter = currentGutter;
+                    playersPerRow = numPlayerGroups;
+                }
+                numPlayerGroups++;
+            }
+            return calculatedGutter;
+        }
+
+        private void ArrangeContent()
+        {
+            gridPlan = CalculateGridPlan((int)playerNumber.Value);
+            int gutter = CalculateBaseGutter();
+            int currentY = PlayerGroupTemplate.Location.Y; //Y position of the template
+            int currentPlayer = 1;
+            for (int i = 0; i < gridPlan.Length; i++)
+            {
+                if (gridPlan[i] != playersPerRow)
+                {
+                    gutter = ((this.ClientSize.Width - (sidePadding * 2)) - (PlayerGroupTemplate.Width * gridPlan[i])) / (gridPlan[i] + 1);
+                }
+                for (int j = 0; j < gridPlan[i]; j++)
+                {
+
+                    GroupBox currentGroup = playerBoxes[currentPlayer - 1];
+                    currentGroup.Location = new System.Drawing.Point(sidePadding + gutter + (j * (PlayerGroupTemplate.Width + gutter)), currentY);
+                    currentPlayer++;
+                }
+                currentY += PlayerGroupTemplate.Height + 20;
+            }
+
+            //Update position of calculate button
+            Control lastGroup = playerBoxes[playerBoxes.Count() - 1];
+            calculate_button.Location = new System.Drawing.Point(CalculateCenterX(calculate_button), lastGroup.Location.Y + lastGroup.Size.Height + 20);
+            calculate_button.Visible = true;
+
+            // Conditionally create or update the spacer
+            if (!Controls.ContainsKey("button_spacer"))
+            {
+                Controls.Add(CreateSpacer(20, calculate_button, "button_spacer"));
+            }
+            else
+            {
+                Controls.Find("button_spacer", false)[0].Location = new System.Drawing.Point(0, calculate_button.Location.Y + calculate_button.Height);
+            }
         }
     }
 
